@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <title>Pacman Game</title>
+    <style>
+        #game-board {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12 text-center">
+                <h1>Pacman Game</h1>
+            </div>
+            <div class="col-12 text-center">
+                <canvas id="game-board" width="400" height="400"></canvas>
+            </div>
+            <div class="col-12 text-center mt-3">
+                <button id="restart-button" class="btn btn-primary">Restart</button>
+            </div>
+        </div>
+    </div>
+    <div id="game-over-modal" class="modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Game Over</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Game over! Your score is: <span id="score"></span></p>
+                </div>
+                <div class="modal-footer">
+                    <button id="restart-modal-button" class="btn btn-primary">Restart</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <script>
+        const gameBoard = document.getElementById('game-board');
+        const ctx = gameBoard.getContext('2d');
+        const pacmanSize = 20;
+        const pacmanSpeed = 2;
+        let pacmanX = gameBoard.width / 2;
+        let pacmanY = gameBoard.height / 2;
+        let score = 0;
+        let pellets = [];
+        let ghosts = [];
+        let gameOver = false;
+
+        // Draw game board
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, gameBoard.width, gameBoard.height);
+
+        // Draw walls
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(0, 0, gameBoard.width, 20);
+        ctx.fillRect(0, gameBoard.height - 20, gameBoard.width, 20);
+        ctx.fillRect(0, 0, 20, gameBoard.height);
+        ctx.fillRect(gameBoard.width - 20, 0, 20, gameBoard.height);
+
+        // Create pellets
+        for (let i = 0; i < 10; i++) {
+            pellets.push({
+                x: Math.random() * (gameBoard.width - 20),
+                y: Math.random() * (gameBoard.height - 20)
+            });
+        }
+
+        // Create ghosts
+        for (let i = 0; i < 3; i++) {
+            ghosts.push({
+                x: Math.random() * (gameBoard.width - 20),
+                y: Math.random() * (gameBoard.height - 20),
+                speed: Math.random() * 2 + 1
+            });
+        }
+
+        // Draw Pacman
+        function drawPacman() {
+            ctx.fillStyle = 'yellow';
+            ctx.beginPath();
+            ctx.arc(pacmanX, pacmanY, pacmanSize / 2, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        // Draw pellets
+        function drawPellets() {
+            ctx.fillStyle = 'white';
+            for (let i = 0; i < pellets.length; i++) {
+                ctx.beginPath();
+                ctx.arc(pellets[i].x, pellets[i].y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        // Draw ghosts
+        function drawGhosts() {
+            ctx.fillStyle = 'red';
+            for (let i = 0; i < ghosts.length; i++) {
+                ctx.beginPath();
+                ctx.arc(ghosts[i].x, ghosts[i].y, 10, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        // Update game state
+        function updateGameState() {
+            if (!gameOver) {
+                // Move Pacman
+                if (rightPressed) {
+                    pacmanX += pacmanSpeed;
+                } else if (leftPressed) {
+                    pacmanX -= pacmanSpeed;
+                } else if (upPressed) {
+                    pacmanY -= pacmanSpeed;
+                } else if (downPressed) {
+                    pacmanY += pacmanSpeed;
+                }
+
+                // Check collisions with walls
+                if (pacmanX < 20) {
+                    pacmanX = 20;
+                } else if (pacmanX > gameBoard.width - 20) {
+                    pacmanX = gameBoard.width - 20;
+                }
+                if (pacmanY < 20) {
+                    pacmanY = 20;
+                } else if (pacmanY > gameBoard.height - 20) {
+                    pacmanY = gameBoard.height - 20;
+                }
+
+                // Check collisions with pellets
+                for (let i = 0; i < pellets.length; i++) {
+                    if (Math.sqrt(Math.pow(pacmanX - pellets[i].x, 2) + Math.pow(pacmanY - pellets[i].y, 2)) < pacmanSize / 2 + 5) {
+                        score++;
+                        pellets.splice(i, 1);
+                    }
+                }
+
+                // Check collisions with ghosts
+                for (let i = 0; i < ghosts.length; i++) {
+                    if (Math.sqrt(Math.pow(pacmanX - ghosts[i].x, 2) + Math.pow(pacmanY - ghosts[i].y, 2)) < pacmanSize / 2 + 10) {
+                        gameOver = true;
+                    }
+                }
+
+                // Update ghosts
+                for (let i = 0; i < ghosts.length; i++) {
+                    ghosts[i].x += ghosts[i].speed;
+                    if (ghosts[i].x < 20) {
+                        ghosts[i].x = 20;
+                        ghosts[i].speed = -ghosts[i].speed;
+                    } else if (ghosts[i].x > gameBoard.width - 20) {
+                        ghosts[i].x = gameBoard.width - 20;
+                        ghosts[i].speed = -ghosts[i].speed;
+                    }
+                }
+
+                // Draw game board
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, gameBoard.width, gameBoard.height);
+
+                // Draw walls
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(0, 0, gameBoard.width, 20);
+                ctx.fillRect(0, gameBoard.height - 20, gameBoard.width, 20);
+                ctx.fillRect(0, 0, 20, gameBoard.height);
+                ctx.fillRect(gameBoard.width - 20, 0, 20, gameBoard.height);
+
+                // Draw Pacman
+                drawPacman();
+
+                // Draw pellets
+                drawPellets();
+
+                // Draw ghosts
+                drawGhosts();
+
+                // Display score
+                ctx.fillStyle = 'white';
+                ctx.font = '24px Arial';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillText('Score: ' + score, 10, 10);
+            } else {
+                // Display game over modal
+                const gameOverModal = document.getElementById('game-over-modal');
+                const scoreSpan = document.getElementById('score');
+                scoreSpan.textContent = score;
+                gameOverModal.style.display = 'block';
+            }
+        }
+
+        let rightPressed = false;
+        let leftPressed = false;
+        let upPressed = false;
+        let downPressed = false;
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                rightPressed = true;
+            } else if (e.key === 'ArrowLeft') {
+                leftPressed = true;
+            } else if (e.key === 'ArrowUp') {
+                upPressed = true;
+            } else if (e.key === 'ArrowDown') {
+                downPressed = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowRight') {
+                rightPressed = false;
+            } else if (e.key === 'ArrowLeft') {
+                leftPressed = false;
+            } else if (e.key === 'ArrowUp') {
+                upPressed = false;
+            } else if (e.key === 'ArrowDown') {
+                downPressed = false;
+            }
+        });
+
+        document.getElementById('restart-button').addEventListener('click', () => {
+            location.reload();
+        });
+
+        document.getElementById('restart-modal-button').addEventListener('click', () => {
+            location.reload();
+        });
+
+        setInterval(updateGameState, 16);
+    </script>
+</body>
+</html>
